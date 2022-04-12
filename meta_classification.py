@@ -188,7 +188,7 @@ def main(args):
     config = config_evaluation_setup(args)
 
     transform = Compose([ToTensor(), Normalize(config.dataset.mean, config.dataset.std)])
-    datloader = config.dataset(root=config.roots.eval_dataset_root, split="test", transform=transform)
+    datloader = config.dataset(root=config.roots.eval_dataset_root, split="test", model=config.roots.model_name, transform=transform)
     start = time.time()
 
     """Perform Meta Classification"""
@@ -200,7 +200,7 @@ def main(args):
     if args["segment_search"]:
         print("SEGMENT SEARCH")
         compute_metrics(config.params, config.roots, datloader, num_cores=cpu_count() - 2).compute_metrics_per_image()
-    if args["fp_removal"]:
+    if args["fp_removal"] :
         print("FALSE POSITIVE REMOVAL VIA META CLASSIFICATION")
         meta_classification(config.params, config.roots, datloader).classifier_fit_and_predict()
 
@@ -222,3 +222,4 @@ if __name__ == '__main__':
     parser.add_argument("-segment", "--segment_search", action='store_true')
     parser.add_argument("-removal", "--fp_removal", action='store_true')
     main(vars(parser.parse_args()))
+

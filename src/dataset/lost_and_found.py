@@ -63,7 +63,7 @@ class LostAndFound(Dataset):
 
     train_id_in = 1
     train_id_out = 2
-    cs = Cityscapes()
+    cs = Cityscapes(root="/home/kiran/kiran/Thesis/code/datasets/cityscapes")
     mean = cs.mean
     std = cs.std
     num_eval_classes = cs.num_train_ids
@@ -104,3 +104,4 @@ class LostAndFound(Dataset):
         fmt_str = 'LostAndFound Split: %s\n' % self.split
         fmt_str += '----Number of images: %d\n' % len(self.images)
         return fmt_str.strip()
+

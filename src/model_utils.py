@@ -11,6 +11,11 @@ from PIL import Image
 
 from src.model.deepv3 import DeepWV3Plus
 from src.model.DualGCNNet import DualSeg_res50
+from detectron2.projects.deeplab import add_deeplab_config
+from detectron2.config import get_cfg
+from detectron2.modeling import build_model
+from detectron2.checkpoint import DetectionCheckpointer
+import config
 
 
 def load_network(model_name, num_classes, ckpt_path=None, train=False):
@@ -21,12 +26,20 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
         network = nn.DataParallel(DeepWV3Plus(num_classes))
     elif model_name == "DualGCNNet_res50":
         network = DualSeg_res50(num_classes)
+    elif model_name == "Detectron_DeepLab":
+        cfg = get_cfg()
+        add_deeplab_config(cfg)
+        cfg.merge_from_file(config.Detectron_DeepLab_Config)
+        network = build_model(cfg)
     else:
         print("\nModel is not known")
         exit()
 
     if ckpt_path is not None:
-        network.load_state_dict(torch.load(ckpt_path)['state_dict'], strict=False)
+        if model_name == "Detectron_DeepLab":
+            DetectionCheckpointer(network).load(ckpt_path)
+        else:
+            network.load_state_dict(torch.load(ckpt_path)['state_dict'], strict=False)
     network = network.cuda()
     if train:
         print("... ok")
@@ -37,11 +50,14 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
 
 
 def prediction(net, image):
-    image = image.cuda()
+    if not isinstance(image, list):
+        image = image.cuda()
     with torch.no_grad():
         out = net(image)
     if isinstance(out, tuple):
         out = out[0]
+    elif isinstance(out, list):
+        out = out[0]['sem_seg']
     out = out.data.cpu()
     out = F.softmax(out, 1)
     return out.numpy()
@@ -119,7 +135,8 @@ class inference(object):
 
     def prob_gt_calc(self, i):
         x, y = self.loader[i]
-        probs = np.squeeze(prediction(self.net, x.unsqueeze_(0)))
+        probs = np.squeeze(prediction(self.net, x))
+
         gt_train = y.numpy()
         try:
             gt_label = np.array(Image.open(self.loader.annotations[i]).convert('L'))
@@ -145,3 +162,4 @@ def probs_gt_load(i, load_dir):
         print("No probs file, see src.model_utils")
         exit()
     return probs, gt_train, gt_label, im_path
+

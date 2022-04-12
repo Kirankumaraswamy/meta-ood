@@ -20,7 +20,7 @@ class Fishyscapes(Dataset):
 
     train_id_in = 0
     train_id_out = 1
-    cs = Cityscapes()
+    cs = Cityscapes(root="/home/kiran/kiran/Thesis/code/datasets/cityscapes")
     mean = cs.mean
     std = cs.std
     num_eval_classes = cs.num_train_ids
@@ -29,19 +29,23 @@ class Fishyscapes(Dataset):
     trainid_to_color = {label.train_id: label.color for label in labels}
     label_name_to_id = {label.name: label.id for label in labels}
 
-    def __init__(self, split='Static', root="/home/datasets/fishyscapes/", transform=None):
+    def __init__(self, split='test', root="/home/datasets/fishyscapes/", model=None, transform=None):
         """Load all filenames."""
         self.transform = transform
         self.root = root
+        self.model = model
         self.split = split      # ['Static', 'LostAndFound']
         self.images = []        # list of all raw input images
         self.targets = []       # list of all ground truth TrainIds images
         for root, _, filenames in os.walk(os.path.join(root, self.split)):
             for filename in filenames:
-                if os.path.splitext(filename)[1] == '.png':
+                if len(filename.split('_labels.png')) > 1:
                     filename_base = os.path.splitext(filename)[0]
-                    self.images.append(os.path.join(root, filename_base + '.jpg'))
-                    self.targets.append(os.path.join(root, filename_base + '.png'))
+                    # self.images.append(os.path.join(root, filename_base + '.jpg'))
+                    self.targets.append(os.path.join(root, filename))
+                else:
+                    self.images.append(os.path.join(root, filename))
+
         self.images = sorted(self.images)
         self.targets = sorted(self.targets)
 
@@ -55,10 +59,14 @@ class Fishyscapes(Dataset):
         target = Image.open(self.targets[i]).convert('L')
         if self.transform is not None:
             image, target = self.transform(image, target)
-        return image, target
+        if self.model == "Detectron_DeepLab":
+            return [{"image": image}], target
+        else:
+            return image, target
 
     def __repr__(self):
         """Print some information about dataset."""
         fmt_str = 'LostAndFound Split: %s\n' % self.split
         fmt_str += '----Number of images: %d\n' % len(self.images)
         return fmt_str.strip()
+

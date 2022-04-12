@@ -5,12 +5,14 @@ from src.dataset.fishyscapes import Fishyscapes
 
 TRAINSETS   = ["Cityscapes+COCO"]
 VALSETS     = ["LostAndFound", "Fishyscapes"]
-MODELS      = ["DeepLabV3+_WideResNet38", "DualGCNNet_res50"]
+MODELS      = ["DeepLabV3+_WideResNet38", "DualGCNNet_res50", "Detectron_DeepLab"]
 
 TRAINSET    = TRAINSETS[0]
-VALSET      = VALSETS[0]
-MODEL       = MODELS[0]
-IO          = "/home/chan/io/ood_detection/"
+VALSET      = VALSETS[1]
+MODEL       = MODELS[2]
+#IO          = "/home/chan/io/ood_detection/"
+IO = "/home/kiran/kiran/Thesis/code/meta-ood/results"
+Detectron_DeepLab_Config = "/home/kiran/kiran/Thesis/code/meta-ood/src/config/deeplab/deeplab_v3_plus_R_103_os16_mg124_poly_90k_bs16.yaml"
 
 class cs_coco_roots:
     """
@@ -29,11 +31,14 @@ class laf_roots:
     LostAndFound config class
     """
     model_name = MODEL
-    init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
+    #init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
+    init_ckpt = os.path.join("/home/kiran/kiran/Thesis/code/meta-ood", model_name + ".pth")
     eval_dataset_root = "/home/datasets/lost_and_found/"
+    #eval_dataset_root = "/home/kiran/kiran/Thesis/code/datasets/fishyscapes_lostandfound"
     eval_sub_dir = "laf_eval"
     io_root = os.path.join(IO + "meta_ood_" + model_name, eval_sub_dir)
-    weights_dir = os.path.join(io_root, "..", "weights/")
+    #weights_dir = os.path.join(io_root, "..", "weights/")
+    weights_dir = os.path.join("/home/kiran/kiran/Thesis/code/meta-ood")
 
 
 class fs_roots:
@@ -41,8 +46,10 @@ class fs_roots:
     Fishyscapes config class
     """
     model_name = MODEL
-    init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
-    eval_dataset_root = "/home/datasets/fishyscapes/"
+    #init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
+    init_ckpt = "/home/kiran/kiran/Thesis/code/meta-ood/model_final_a8a355.pkl"
+    # eval_dataset_root = "/home/datasets/fishyscapes/"
+    eval_dataset_root = "/home/kiran/kiran/Thesis/code/datasets/fishy_scapes_lost_and_found"
     eval_sub_dir = "fs_eval"
     io_root = os.path.join(IO + "meta_ood_" + model_name, eval_sub_dir)
     weights_dir = os.path.join(io_root, "..", "weights/")
@@ -53,7 +60,7 @@ class params:
     Set pipeline parameters
     """
     training_starting_epoch = 0
-    num_training_epochs     = 1
+    num_training_epochs     = 0
     pareto_alpha            = 0.9
     ood_subsampling_factor  = 0.1
     learning_rate           = 1e-5
@@ -128,3 +135,4 @@ class config_evaluation_setup(object):
             if not os.path.exists(attr):
                 print("Create directory:", attr)
                 os.makedirs(attr)
+
