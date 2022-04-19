@@ -1,6 +1,6 @@
 _BASE_: Base-DeepLabV3-OS16-Semantic.yaml
 MODEL:
-  WEIGHTS: "/home/kiran/kiran/Thesis/code/meta-ood/model_final_a8a355.pkl"
+  WEIGHTS: "//home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/deeplab_model_final_a8a355.pkl"
   PIXEL_MEAN: [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]
   BACKBONE:

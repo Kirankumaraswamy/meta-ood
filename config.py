@@ -5,14 +5,15 @@ from src.dataset.fishyscapes import Fishyscapes
 
 TRAINSETS   = ["Cityscapes+COCO"]
 VALSETS     = ["LostAndFound", "Fishyscapes"]
-MODELS      = ["DeepLabV3+_WideResNet38", "DualGCNNet_res50", "Detectron_DeepLab"]
+MODELS      = ["DeepLabV3+_WideResNet38", "DualGCNNet_res50", "Detectron_DeepLab", "Detectron_Panoptic_DeepLab"]
 
 TRAINSET    = TRAINSETS[0]
 VALSET      = VALSETS[1]
 MODEL       = MODELS[2]
 #IO          = "/home/chan/io/ood_detection/"
-IO = "/home/kiran/kiran/Thesis/code/meta-ood/results"
-Detectron_DeepLab_Config = "/home/kiran/kiran/Thesis/code/meta-ood/src/config/deeplab/deeplab_v3_plus_R_103_os16_mg124_poly_90k_bs16.yaml"
+IO = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/results"
+Detectron_PanopticDeepLab_Config = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/src/config/panopticDeeplab/panoptic_deeplab_R_52_os16_mg124_poly_90k_bs32_crop_512_1024_dsconv.yaml"
+Detectron_DeepLab_Config = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/src/config/deeplab/deeplab_v3_plus_R_103_os16_mg124_poly_90k_bs16.yaml"
 
 class cs_coco_roots:
     """
@@ -32,13 +33,13 @@ class laf_roots:
     """
     model_name = MODEL
     #init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
-    init_ckpt = os.path.join("/home/kiran/kiran/Thesis/code/meta-ood", model_name + ".pth")
+    init_ckpt = os.path.join("/home/kiran/kiran/Thesis/OOD/code/meta-ood", model_name + ".pth")
     eval_dataset_root = "/home/datasets/lost_and_found/"
     #eval_dataset_root = "/home/kiran/kiran/Thesis/code/datasets/fishyscapes_lostandfound"
     eval_sub_dir = "laf_eval"
     io_root = os.path.join(IO + "meta_ood_" + model_name, eval_sub_dir)
     #weights_dir = os.path.join(io_root, "..", "weights/")
-    weights_dir = os.path.join("/home/kiran/kiran/Thesis/code/meta-ood")
+    weights_dir = os.path.join("/home/kiran/kiran/Thesis/OOD/code/meta-ood")
 
 
 class fs_roots:
@@ -47,7 +48,8 @@ class fs_roots:
     """
     model_name = MODEL
     #init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
-    init_ckpt = "/home/kiran/kiran/Thesis/code/meta-ood/model_final_a8a355.pkl"
+    init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/deeplab_model_final_a8a355.pkl"
+    #init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/panoptic_deeplab_model_final_23d03a.pkl"
     # eval_dataset_root = "/home/datasets/fishyscapes/"
     eval_dataset_root = "/home/kiran/kiran/Thesis/code/datasets/fishy_scapes_lost_and_found"
     eval_sub_dir = "fs_eval"

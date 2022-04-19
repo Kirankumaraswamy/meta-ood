@@ -194,7 +194,7 @@ def main(args):
     """Perform Meta Classification"""
     if not args["metaseg_prepare"] and not args["segment_search"] and not args["fp_removal"]:
         args["metaseg_prepare"] = args["segment_search"] = args["fp_removal"] = True
-    if args["metaseg_prepare"]:
+    if args["metaseg_prepare"] and False:
         print("PREPARE METASEG INPUT")
         metaseg_prepare(config.params, config.roots, datloader)
     if args["segment_search"]:

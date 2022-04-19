@@ -16,6 +16,10 @@ from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 import config
+from detectron2.projects.panoptic_deeplab import (
+    add_panoptic_deeplab_config
+)
+
 
 
 def load_network(model_name, num_classes, ckpt_path=None, train=False):
@@ -26,18 +30,24 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
         network = nn.DataParallel(DeepWV3Plus(num_classes))
     elif model_name == "DualGCNNet_res50":
         network = DualSeg_res50(num_classes)
-    elif model_name == "Detectron_DeepLab":
+    elif model_name == "Detectron_DeepLab" or model_name == "Detectron_Panoptic_DeepLab":
         cfg = get_cfg()
-        add_deeplab_config(cfg)
-        cfg.merge_from_file(config.Detectron_DeepLab_Config)
+        if model_name == "Detectron_DeepLab":
+            add_deeplab_config(cfg)
+            cfg.merge_from_file(config.Detectron_DeepLab_Config)
+        elif model_name == "Detectron_Panoptic_DeepLab":
+            add_panoptic_deeplab_config(cfg)
+            cfg.merge_from_file(config.Detectron_PanopticDeepLab_Config)
         network = build_model(cfg)
     else:
         print("\nModel is not known")
         exit()
 
     if ckpt_path is not None:
-        if model_name == "Detectron_DeepLab":
-            DetectionCheckpointer(network).load(ckpt_path)
+        if model_name == "Detectron_DeepLab" or model_name == "Detectron_Panoptic_DeepLab":
+            DetectionCheckpointer(network).resume_or_load(
+                ckpt_path, resume=False
+            )
         else:
             network.load_state_dict(torch.load(ckpt_path)['state_dict'], strict=False)
     network = network.cuda()
@@ -50,17 +60,25 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
 
 
 def prediction(net, image):
+    sem_out = None
+    panoptic_out = None
     if not isinstance(image, list):
         image = image.cuda()
+    net.eval()
     with torch.no_grad():
         out = net(image)
     if isinstance(out, tuple):
         out = out[0]
     elif isinstance(out, list):
-        out = out[0]['sem_seg']
-    out = out.data.cpu()
-    out = F.softmax(out, 1)
-    return out.numpy()
+        if "sem_seg" in out[0].keys():
+            sem_out = out[0]['sem_seg']
+        if "panoptic_seg" in out[0].keys():
+            panoptic_out = out[0]['panoptic_seg'][0]
+            panoptic_out = panoptic_out.data.cpu()
+            panoptic_out = panoptic_out.numpy()
+    sem_out = sem_out.data.cpu()
+    sem_out = F.softmax(sem_out, 0)
+    return sem_out.numpy(), panoptic_out
 
 
 class inference(object):
@@ -135,7 +153,18 @@ class inference(object):
 
     def prob_gt_calc(self, i):
         x, y = self.loader[i]
-        probs = np.squeeze(prediction(self.net, x))
+        sem_seg, panoptic_seg = prediction(self.net, x)
+        probs = np.squeeze(sem_seg)
+        panoptic_probs = np.squeeze(panoptic_seg)
+
+        '''import matplotlib.pyplot as plt
+        out = probs.argmax(axis=0)
+        plt.imshow(out)
+        plt.show()
+        plt.imshow(np.expand_dims(panoptic_probs, axis=2))
+        plt.show()
+        plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+        plt.show()'''
 
         gt_train = y.numpy()
         try:
