@@ -19,11 +19,13 @@ import config
 from detectron2.projects.panoptic_deeplab import (
     add_panoptic_deeplab_config
 )
+from detectron2.engine import DefaultTrainer
 
 
 
 def load_network(model_name, num_classes, ckpt_path=None, train=False):
     network = None
+    cfg = get_cfg()
     print("Checkpoint file:", ckpt_path)
     print("Load model:", model_name, end="", flush=True)
     if model_name == "DeepLabV3+_WideResNet38":
@@ -31,7 +33,7 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
     elif model_name == "DualGCNNet_res50":
         network = DualSeg_res50(num_classes)
     elif model_name == "Detectron_DeepLab" or model_name == "Detectron_Panoptic_DeepLab":
-        cfg = get_cfg()
+
         if model_name == "Detectron_DeepLab":
             add_deeplab_config(cfg)
             cfg.merge_from_file(config.Detectron_DeepLab_Config)
@@ -62,6 +64,7 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False):
 def prediction(net, image):
     sem_out = None
     panoptic_out = None
+    center_heat_map = None
     if not isinstance(image, list):
         image = image.cuda()
     net.eval()
@@ -72,13 +75,16 @@ def prediction(net, image):
     elif isinstance(out, list):
         if "sem_seg" in out[0].keys():
             sem_out = out[0]['sem_seg']
-        if "panoptic_seg" in out[0].keys():
-            panoptic_out = out[0]['panoptic_seg'][0]
+        if len(out) >= 2 and "panoptic_seg" in out[1].keys():
+            panoptic_out = out[1]['panoptic_seg'][0]
             panoptic_out = panoptic_out.data.cpu()
             panoptic_out = panoptic_out.numpy()
+            center_heat_map = out[1]['center_heat_map']
+            center_heat_map = center_heat_map.data.cpu()
+            center_heat_map = center_heat_map.numpy()
     sem_out = sem_out.data.cpu()
     sem_out = F.softmax(sem_out, 0)
-    return sem_out.numpy(), panoptic_out
+    return sem_out.numpy(), panoptic_out, center_heat_map
 
 
 class inference(object):
@@ -153,18 +159,22 @@ class inference(object):
 
     def prob_gt_calc(self, i):
         x, y = self.loader[i]
-        sem_seg, panoptic_seg = prediction(self.net, x)
+        sem_seg, panoptic_seg, center_heat_map = prediction(self.net, x)
         probs = np.squeeze(sem_seg)
         panoptic_probs = np.squeeze(panoptic_seg)
+        center_heat_map = np.squeeze(center_heat_map)
 
         '''import matplotlib.pyplot as plt
+        plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+        plt.show()
         out = probs.argmax(axis=0)
         plt.imshow(out)
         plt.show()
         plt.imshow(np.expand_dims(panoptic_probs, axis=2))
         plt.show()
-        plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+        plt.imshow(np.expand_dims(center_heat_map, axis=2))
         plt.show()'''
+
 
         gt_train = y.numpy()
         try:

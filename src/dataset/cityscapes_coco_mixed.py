@@ -36,7 +36,7 @@ class CityscapesCocoMix(Dataset):
         target = Image.open(self.targets[i]).convert('L')
         if self.transform is not None:
             image, target = self.transform(image, target)
-        return image, target
+        return {"image": image, "height": image.size()[1], "width": image.size()[2], "sem_seg": target}, target
 
     def __len__(self):
         """Return total number of images in the whole dataset."""

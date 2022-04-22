@@ -11,6 +11,7 @@ from config import config_training_setup
 from src.imageaugmentations import Compose, Normalize, ToTensor, RandomCrop, RandomHorizontalFlip
 from src.model_utils import load_network
 from torch.utils.data import DataLoader
+from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
 
 
 def cross_entropy(logits, targets):
@@ -48,13 +49,18 @@ def encode_target(target, pareto_alpha, num_classes, ignore_train_ind, ood_ind=2
     enc = enc.permute(0, 3, 1, 2).contiguous()
     return enc
 
+def panoptic_deep_lab_collate(batch):
+    data = [item[0] for item in batch]
+    target = [item[1] for item in batch]
+    target = torch.stack(target)
+    return data, target
 
 def training_routine(config):
     """Start OoD Training"""
     print("START OOD TRAINING")
     params = config.params
     roots = config.roots
-    dataset = config.dataset()
+    dataset = config.dataset(split="val", cs_root=roots.cs_root, coco_root=roots.coco_root, cs_split="train", coco_split="val")
     print("Pareto alpha:", params.pareto_alpha)
     start_epoch = params.training_starting_epoch
     epochs = params.num_training_epochs
@@ -77,15 +83,25 @@ def training_routine(config):
         """Perform one epoch of training"""
         print('\nEpoch {}/{}'.format(epoch + 1, start_epoch + epochs))
         optimizer = optim.Adam(network.parameters(), lr=params.learning_rate)
-        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor)
-        dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True)
+        trainloader = config.dataset('val', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor)
+        dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True, collate_fn=panoptic_deep_lab_collate)
         i = 0
         loss = None
         for x, target in dataloader:
             optimizer.zero_grad()
-            logits = network(x.cuda())
+            logits, losses = network(x)
+            '''
+            import matplotlib.pyplot as plt
+            plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+            plt.show()
+            out = torch.squeeze(logits).detach().cpu().numpy().argmax(axis=0)
+            plt.imshow(out)
+            plt.show()
+            plt.imshow(torch.squeeze(target).numpy())
+            plt.show()'''
             y = encode_target(target=target, pareto_alpha=params.pareto_alpha, num_classes=dataset.num_classes,
                               ignore_train_ind=dataset.void_ind, ood_ind=dataset.train_id_out).cuda()
+
             loss = cross_entropy(logits, y)
             loss.backward()
             optimizer.step()
@@ -111,7 +127,7 @@ def training_routine(config):
 
 def main(args):
     """Perform training"""
-    config = config_training_setup(args)
+    config = config_training_setup(args.default_args)
     training_routine(config)
 
 
@@ -125,4 +141,19 @@ if __name__ == '__main__':
     parser.add_argument("-alpha", "--pareto_alpha", nargs="?", type=float)
     parser.add_argument("-lr", "--learning_rate", nargs="?", type=float)
     parser.add_argument("-crop", "--crop_size", nargs="?", type=int)
-    main(vars(parser.parse_args()))
+
+    # use detectron2 distributed args
+    args = default_argument_parser().parse_args()
+    #args from current file
+    args.default_args = vars(parser.parse_args())
+    print("Command Line Args:", args)
+    launch(
+        main,
+        args.num_gpus,
+        num_machines=args.num_machines,
+        machine_rank=args.machine_rank,
+        dist_url=args.dist_url,
+        args=(args,),
+    )
+
+    #main(vars(parser.parse_args()))

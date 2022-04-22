@@ -1,8 +1,11 @@
 import os
+
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from collections import namedtuple
 from src.dataset.cityscapes import Cityscapes
+from torchvision.transforms import Resize
 
 
 class Fishyscapes(Dataset):
@@ -59,6 +62,10 @@ class Fishyscapes(Dataset):
         target = Image.open(self.targets[i]).convert('L')
         if self.transform is not None:
             image, target = self.transform(image, target)
+            T = Resize(size=(512, 1024))
+            image = T(image)
+            target = T(torch.unsqueeze(target, dim=0))
+            target = torch.squeeze(target)
         if self.model == "Detectron_DeepLab" or self.model == "Detectron_Panoptic_DeepLab":
             return [{"image": image, "height": image.size()[1], "width": image.size()[2]}], target
         else:

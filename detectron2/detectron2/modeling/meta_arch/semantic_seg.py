@@ -113,7 +113,7 @@ class SemanticSegmentor(nn.Module):
         results, losses = self.sem_seg_head(features, targets)
 
         if self.training:
-            return losses
+            return results, losses
 
         processed_results = []
         for result, input_per_image, image_size in zip(results, batched_inputs, images.image_sizes):

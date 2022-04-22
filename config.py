@@ -20,9 +20,10 @@ class cs_coco_roots:
     OoD training roots for Cityscapes + COCO mix
     """
     model_name  = MODEL
-    init_ckpt   = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
-    cs_root     = "/home/datasets/cityscapes/"
-    coco_root   = "/home/datasets/COCO/2017"
+    init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/deeplab_model_final_a8a355.pkl"
+    #init_ckpt   = os.path.join("/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/panoptic_deeplab_model_final_23d03a.pkl")
+    cs_root     = "/home/kiran/kiran/Thesis/code/datasets/cityscapes/"
+    coco_root   = "/home/kiran/kiran/Thesis/code/datasets/COCO/2017/"
     io_root     = IO + "meta_ood_" + model_name
     weights_dir = os.path.join(io_root, "weights/")
 
@@ -47,14 +48,14 @@ class fs_roots:
     Fishyscapes config class
     """
     model_name = MODEL
-    #init_ckpt = os.path.join("/home/chan/io/cityscapes/weights/", model_name + ".pth")
-    init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/deeplab_model_final_a8a355.pkl"
-    #init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/panoptic_deeplab_model_final_23d03a.pkl"
+    #init_ckpt = os.path.join("/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/DeepLabV3+_WideResNet38_epoch_4_alpha_0.9.pth")
+    #init_ckpt = "/home/kiran/kiran/Thesis/OOD/code/meta-ood/weights/deeplab_model_final_a8a355.pkl"
+    init_ckpt = "/home/kiran/kiran/Thesis/code/VideoPanopticSegmentation/detectron2/projects/Panoptic-DeepLab/model_final_23d03a.pkl"
     # eval_dataset_root = "/home/datasets/fishyscapes/"
     eval_dataset_root = "/home/kiran/kiran/Thesis/code/datasets/fishy_scapes_lost_and_found"
     eval_sub_dir = "fs_eval"
-    io_root = os.path.join(IO + "meta_ood_" + model_name, eval_sub_dir)
-    weights_dir = os.path.join(io_root, "..", "weights/")
+    io_root = os.path.join("/home/kiran/kiran/Thesis/OOD/code/meta-ood/")
+    weights_dir = os.path.join(io_root, "weights/")
 
 
 class params:
@@ -62,13 +63,13 @@ class params:
     Set pipeline parameters
     """
     training_starting_epoch = 0
-    num_training_epochs     = 0
+    num_training_epochs     = 4
     pareto_alpha            = 0.9
     ood_subsampling_factor  = 0.1
     learning_rate           = 1e-5
-    crop_size               = 480
+    crop_size               = (256,512)
     val_epoch               = num_training_epochs
-    batch_size              = 8
+    batch_size              = 1
     entropy_threshold       = 0.7
 
 

@@ -227,7 +227,7 @@ class DeepLabV3PlusHead(nn.Module):
             # Output from self.layers() only contains decoder feature.
             return y
         if self.training:
-            return None, self.losses(y, targets)
+            return self.losses(y, targets)
         else:
             y = F.interpolate(
                 y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -257,7 +257,7 @@ class DeepLabV3PlusHead(nn.Module):
         )
         loss = self.loss(predictions, targets)
         losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return predictions, losses
 
 
 @SEM_SEG_HEADS_REGISTRY.register()

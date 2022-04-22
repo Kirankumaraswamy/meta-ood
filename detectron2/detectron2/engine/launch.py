@@ -50,7 +50,7 @@ def launch(
         args (tuple): arguments passed to main_func
     """
     world_size = num_machines * num_gpus_per_machine
-    if world_size > 1:
+    if world_size >= 1:
         # https://github.com/pytorch/pytorch/pull/14391
         # TODO prctl in spawned processes
 

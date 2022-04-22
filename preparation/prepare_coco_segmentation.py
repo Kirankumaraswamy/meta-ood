@@ -13,7 +13,7 @@ from pycocotools.coco import COCO as coco_tools
 def main():
     start = time.time()
     root = cs_coco_roots.coco_root
-    split = "train"
+    split = "val"
     year = 2017
     id_in = COCO.train_id_in
     id_out = COCO.train_id_out
