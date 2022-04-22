@@ -152,6 +152,14 @@ class PanopticDeepLab(nn.Module):
         for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
             sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
         ):
+
+            '''import matplotlib.pyplot as plt
+            a = torch.argmax(sem_seg_results, dim=1).cpu()
+            a = a.detach().numpy()
+            a = np.moveaxis(a, 0, -1)
+            plt.imshow(a)
+            plt.show()'''
+
             height = input_per_image.get("height")
             width = input_per_image.get("width")
             r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
@@ -172,6 +180,7 @@ class PanopticDeepLab(nn.Module):
             )
             # For semantic segmentation evaluation.
             processed_results.append({"sem_seg": r})
+            processed_results.append(({"center_heat_map": c}))
             panoptic_image = panoptic_image.squeeze(0)
             semantic_prob = F.softmax(r, dim=0)
             # For panoptic segmentation evaluation.
