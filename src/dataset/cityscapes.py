@@ -3,7 +3,8 @@ from collections import namedtuple
 from typing import Any, Callable, Optional, Tuple
 from torch.utils.data import Dataset
 from PIL import Image
-
+from detectron2.data.datasets.cityscapes_panoptic import register_all_cityscapes_panoptic
+from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
 
 class Cityscapes(Dataset):
     """`
@@ -72,8 +73,9 @@ class Cityscapes(Dataset):
     id2label = {label.id: label for label in labels}
     train_id2label = {label.train_id: label for label in labels}
 
+
     def __init__(self, root: str = "/home/datasets/cityscapes/", split: str = "val", mode: str = "gtFine",
-                 target_type: str = "semantic_train_id", transform: Optional[Callable] = None,
+                 target_type: str = "panoptic", transform: Optional[Callable] = None,
                  predictions_root: Optional[str] = None) -> None:
         """
         Cityscapes dataset loader
@@ -83,22 +85,15 @@ class Cityscapes(Dataset):
         self.mode = 'gtFine' if "fine" in mode.lower() else 'gtCoarse'
         self.transform = transform
         self.images_dir = os.path.join(self.root, 'leftImg8bit', self.split)
-        self.targets_dir = os.path.join(self.root, self.mode, self.split)
+        self.targets_dir = os.path.join(self.root, self.mode, "cityscapes_panoptic_"+self.split)
+        self.json_file = os.path.join(self.root, self.mode, "cityscapes_panoptic_", self.split, ".json")
         self.predictions_dir = os.path.join(predictions_root, self.split) if predictions_root is not None else ""
         self.images = []
         self.targets = []
         self.predictions = []
-
-        for city in os.listdir(self.images_dir):
-            img_dir = os.path.join(self.images_dir, city)
-            target_dir = os.path.join(self.targets_dir, city)
-            pred_dir = os.path.join(self.predictions_dir, city)
-            for file_name in os.listdir(img_dir):
-                target_name = '{}_{}'.format(file_name.split('_leftImg8bit')[0],
-                                             self._get_target_suffix(self.mode, target_type))
-                self.images.append(os.path.join(img_dir, file_name))
-                self.targets.append(os.path.join(target_dir, target_name))
-                self.predictions.append(os.path.join(pred_dir, file_name.replace("_leftImg8bit", "")))
+        self.cityscapes_data_dicts = DatasetCatalog.get("cityscapes_fine_panoptic_train")
+        for i in range(len(self.cityscapes_data_dicts)):
+            self.cityscapes_data_dicts[i]["dataset"] = "cityscapes"
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         image = Image.open(self.images[index]).convert('RGB')

@@ -30,7 +30,7 @@ INPUT:
   CROP:
     ENABLED: True
     TYPE: "absolute"
-    SIZE: (256, 512)
+    SIZE: (480, 480)
     SINGLE_CATEGORY_MAX_AREA: 1.0
 DATALOADER:
   NUM_WORKERS: 10

@@ -67,9 +67,9 @@ class params:
     pareto_alpha            = 0.9
     ood_subsampling_factor  = 0.1
     learning_rate           = 1e-5
-    crop_size               = (256,512)
+    crop_size               = 480
     val_epoch               = num_training_epochs
-    batch_size              = 1
+    batch_size              = 8
     entropy_threshold       = 0.7
 
 

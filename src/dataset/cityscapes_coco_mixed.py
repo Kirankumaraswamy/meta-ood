@@ -22,8 +22,7 @@ class CityscapesCocoMix(Dataset):
 
         self.cs = Cityscapes(root=cs_root, split=self.cs_split)
         self.coco = COCO(root=coco_root, split=self.coco_split, proxy_size=int(subsampling_factor*len(self.cs)))
-        self.images = self.cs.images + self.coco.images
-        self.targets = self.cs.targets + self.coco.targets
+        self.data_dicts = self.cs.cityscapes_data_dicts + self.coco.coco_data_dicts
         self.train_id_out = self.coco.train_id_out
         self.num_classes = self.cs.num_train_ids
         self.mean = self.cs.mean
@@ -31,16 +30,19 @@ class CityscapesCocoMix(Dataset):
         self.void_ind = self.cs.ignore_in_eval_ids
 
     def __getitem__(self, i):
-        """Return raw image, ground truth in PIL format and absolute path of raw image as string"""
-        image = Image.open(self.images[i]).convert('RGB')
-        target = Image.open(self.targets[i]).convert('L')
+        data = self.data_dicts[i]
+        image = Image.open(data["file_name"]).convert('RGB')
+        sem_seg = Image.open(data["sem_seg_file_name"]).convert('L')
+
         if self.transform is not None:
-            image, target = self.transform(image, target)
-        return {"image": image, "height": image.size()[1], "width": image.size()[2], "sem_seg": target}, target
+            image, sem_seg = self.transform(image, sem_seg)
+        data["image"] = image
+        data["sem_seg"] = sem_seg
+        return data, sem_seg
 
     def __len__(self):
         """Return total number of images in the whole dataset."""
-        return len(self.images)
+        return len(self.data_dicts)
 
     def __repr__(self):
         """Return number of images in each dataset."""
