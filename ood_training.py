@@ -83,7 +83,7 @@ def training_routine(config):
         """Perform one epoch of training"""
         print('\nEpoch {}/{}'.format(epoch + 1, start_epoch + epochs))
         optimizer = optim.Adam(network.parameters(), lr=params.learning_rate)
-        trainloader = config.dataset('val', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor)
+        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor)
         dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True, collate_fn=panoptic_deep_lab_collate)
         i = 0
         loss = None
