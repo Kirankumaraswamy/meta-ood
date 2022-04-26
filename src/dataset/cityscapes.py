@@ -106,7 +106,7 @@ class Cityscapes(Dataset):
         return image, target
 
     def __len__(self) -> int:
-        return len(self.images)
+        return len(self.cityscapes_data_dicts)
 
     @staticmethod
     def _get_target_suffix(mode: str, target_type: str) -> str:

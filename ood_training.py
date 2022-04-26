@@ -111,11 +111,14 @@ def training_routine(config):
         """Save model state"""
         save_basename = roots.model_name + "_epoch_" + str(epoch + 1) + "_alpha_" + str(params.pareto_alpha) + ".pth"
         print('Saving checkpoint', os.path.join(roots.weights_dir, save_basename))
-        torch.save({
+        '''torch.save({
             'epoch': epoch + 1,
             'state_dict': network.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
+        }, os.path.join(roots.weights_dir, save_basename))'''
+        torch.save({
+            'model': network.state_dict()
         }, os.path.join(roots.weights_dir, save_basename))
         torch.cuda.empty_cache()
 
