@@ -86,6 +86,7 @@ class PanopticDeepLab(nn.Module):
                 * "instances": available if ``predict_instances is True``. see documentation
                     :doc:`/tutorials/models` for the standard output format
         """
+        results = {}
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
         # To avoid error in ASPP layer when input has different size.
@@ -115,6 +116,7 @@ class PanopticDeepLab(nn.Module):
             targets = None
             weights = None
         sem_seg_results, sem_seg_losses = self.sem_seg_head(features, targets, weights)
+        results["sem_seg_results"] = sem_seg_results
         losses.update(sem_seg_losses)
 
         if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -136,14 +138,16 @@ class PanopticDeepLab(nn.Module):
             offset_targets = None
             offset_weights = None
 
-        center_results, offset_results, center_losses, offset_losses = self.ins_embed_head(
+        center_results, center_losses, offset_results, offset_losses = self.ins_embed_head(
             features, center_targets, center_weights, offset_targets, offset_weights
         )
         losses.update(center_losses)
         losses.update(offset_losses)
+        results["center_results"] = center_results
+        results["offset_results"] = offset_results
 
         if self.training:
-            return losses
+            return results, losses
 
         if self.benchmark_network_speed:
             return []
@@ -339,7 +343,7 @@ class PanopticDeepLabSemSegHead(DeepLabV3PlusHead):
         """
         y = self.layers(features)
         if self.training:
-            return None, self.losses(y, targets, weights)
+            return self.losses(y, targets, weights)
         else:
             y = F.interpolate(
                 y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -359,7 +363,7 @@ class PanopticDeepLabSemSegHead(DeepLabV3PlusHead):
         )
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return predictions, losses
 
 
 def build_ins_embed_branch(cfg, input_shape):
@@ -524,11 +528,13 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         """
         center, offset = self.layers(features)
         if self.training:
+            center_pred, center_loss = self.center_losses(center, center_targets, center_weights)
+            offset_pred, offset_loss = self.offset_losses(offset, offset_targets, offset_weights)
             return (
-                None,
-                None,
-                self.center_losses(center, center_targets, center_weights),
-                self.offset_losses(offset, offset_targets, offset_weights),
+                center_pred,
+                center_loss,
+                offset_pred,
+                offset_loss
             )
         else:
             center = F.interpolate(
@@ -563,7 +569,7 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         else:
             loss = loss.sum() * 0
         losses = {"loss_center": loss * self.center_loss_weight}
-        return losses
+        return predictions, losses
 
     def offset_losses(self, predictions, targets, weights):
         predictions = (
@@ -578,4 +584,4 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         else:
             loss = loss.sum() * 0
         losses = {"loss_offset": loss * self.offset_loss_weight}
-        return losses
+        return predictions, losses

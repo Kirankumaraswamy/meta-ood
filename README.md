@@ -9,3 +9,8 @@ pip3 install torch torchvision torchaudio --extra-index-url https://download.pyt
 python -m pip install -e detectron2
 pip install -r requirements.txt
 ```
+Set environmental variable to store the location of dataset
+```
+EG: export DETECTRON2_DATASETS=/home/ood/datasets
+```
+Run the script ```meta-ood/preparation/prepare_coco_segmentation.py``` to prepare the COCO dataset for ood training.

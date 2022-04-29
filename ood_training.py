@@ -12,6 +12,12 @@ from src.imageaugmentations import Compose, Normalize, ToTensor, RandomCrop, Ran
 from src.model_utils import load_network
 from torch.utils.data import DataLoader
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
+from detectron2.projects.panoptic_deeplab import (
+    add_panoptic_deeplab_config
+)
+from detectron2.projects.deeplab import add_deeplab_config
+from detectron2.config import get_cfg
+import config as meta_ood_config
 
 
 def cross_entropy(logits, targets):
@@ -60,21 +66,34 @@ def training_routine(config):
     print("START OOD TRAINING")
     params = config.params
     roots = config.roots
-    dataset = config.dataset(split="val", cs_root=roots.cs_root, coco_root=roots.coco_root, cs_split="train", coco_split="val")
+    dataset = config.dataset(split="train", cs_root=roots.cs_root, coco_root=roots.coco_root, cs_split="train", coco_split="val")
     print("Pareto alpha:", params.pareto_alpha)
     start_epoch = params.training_starting_epoch
     epochs = params.num_training_epochs
     start = time.time()
 
+    # This parameter is needed for panoptic segmentation data loading
+    dataset_cfg = None
+
+    # load configuration from cfg files for detectron2
+    cfg = get_cfg()
+    if roots.model_name == "Detectron_DeepLab":
+        add_deeplab_config(cfg)
+        cfg.merge_from_file(meta_ood_config.Detectron_DeepLab_Config)
+    elif roots.model_name == "Detectron_Panoptic_DeepLab":
+        add_panoptic_deeplab_config(cfg)
+        cfg.merge_from_file(meta_ood_config.Detectron_PanopticDeepLab_Config)
+        dataset_cfg = cfg
+
     """Initialize model"""
     if start_epoch == 0:
         network = load_network(model_name=roots.model_name, num_classes=dataset.num_classes,
-                               ckpt_path=roots.init_ckpt, train=True)
+                               ckpt_path=roots.init_ckpt, train=True, cfg=cfg)
     else:
         basename = roots.model_name + "_epoch_" + str(start_epoch) \
                    + "_alpha_" + str(params.pareto_alpha) + ".pth"
         network = load_network(model_name=roots.model_name, num_classes=dataset.num_classes,
-                               ckpt_path=os.path.join(roots.weights_dir, basename), train=True)
+                               ckpt_path=os.path.join(roots.weights_dir, basename), train=True, cfg=cfg)
 
     transform = Compose([RandomHorizontalFlip(), RandomCrop(params.crop_size), ToTensor(),
                          Normalize(dataset.mean, dataset.std)])
@@ -83,24 +102,28 @@ def training_routine(config):
         """Perform one epoch of training"""
         print('\nEpoch {}/{}'.format(epoch + 1, start_epoch + epochs))
         optimizer = optim.Adam(network.parameters(), lr=params.learning_rate)
-        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor)
+        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor, cfg=dataset_cfg)
         dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True, collate_fn=panoptic_deep_lab_collate)
         i = 0
         loss = None
         for x, target in dataloader:
             optimizer.zero_grad()
             logits, losses = network(x)
-            '''
-            import matplotlib.pyplot as plt
+
+            y = encode_target(target=target, pareto_alpha=params.pareto_alpha, num_classes=dataset.num_classes,
+                              ignore_train_ind=dataset.void_ind, ood_ind=dataset.train_id_out).cuda()
+
+            logits = logits["sem_seg_results"]
+            '''import matplotlib.pyplot as plt
             plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
             plt.show()
             out = torch.squeeze(logits).detach().cpu().numpy().argmax(axis=0)
             plt.imshow(out)
             plt.show()
             plt.imshow(torch.squeeze(target).numpy())
+            plt.show()
+            plt.imshow(np.max(torch.squeeze(y).cpu().numpy(), axis=0))
             plt.show()'''
-            y = encode_target(target=target, pareto_alpha=params.pareto_alpha, num_classes=dataset.num_classes,
-                              ignore_train_ind=dataset.void_ind, ood_ind=dataset.train_id_out).cuda()
 
             loss = cross_entropy(logits, y)
             loss.backward()
@@ -111,12 +134,6 @@ def training_routine(config):
         """Save model state"""
         save_basename = roots.model_name + "_epoch_" + str(epoch + 1) + "_alpha_" + str(params.pareto_alpha) + ".pth"
         print('Saving checkpoint', os.path.join(roots.weights_dir, save_basename))
-        '''torch.save({
-            'epoch': epoch + 1,
-            'state_dict': network.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
-        }, os.path.join(roots.weights_dir, save_basename))'''
         torch.save({
             'model': network.state_dict()
         }, os.path.join(roots.weights_dir, save_basename))

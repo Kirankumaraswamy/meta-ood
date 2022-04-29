@@ -257,7 +257,7 @@ class DeepLabV3PlusHead(nn.Module):
         )
         loss = self.loss(predictions, targets)
         losses = {"loss_sem_seg": loss * self.loss_weight}
-        return predictions, losses
+        return {"sem_seg_results": predictions}, losses
 
 
 @SEM_SEG_HEADS_REGISTRY.register()

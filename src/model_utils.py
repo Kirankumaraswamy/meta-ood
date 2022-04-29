@@ -23,9 +23,8 @@ from detectron2.engine import DefaultTrainer
 
 
 
-def load_network(model_name, num_classes, ckpt_path=None, train=False):
+def load_network(model_name, num_classes, ckpt_path=None, train=False, cfg=None):
     network = None
-    cfg = get_cfg()
     print("Checkpoint file:", ckpt_path)
     print("Load model:", model_name, end="", flush=True)
     if model_name == "DeepLabV3+_WideResNet38":
