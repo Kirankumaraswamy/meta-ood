@@ -138,7 +138,7 @@ class PanopticDeepLab(nn.Module):
             offset_targets = None
             offset_weights = None
 
-        center_results, center_losses, offset_results, offset_losses = self.ins_embed_head(
+        center_results, offset_results, center_losses, offset_losses = self.ins_embed_head(
             features, center_targets, center_weights, offset_targets, offset_weights
         )
         losses.update(center_losses)
@@ -532,8 +532,8 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
             offset_pred, offset_loss = self.offset_losses(offset, offset_targets, offset_weights)
             return (
                 center_pred,
-                center_loss,
                 offset_pred,
+                center_loss,
                 offset_loss
             )
         else:

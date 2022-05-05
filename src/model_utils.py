@@ -25,6 +25,7 @@ from detectron2.engine import DefaultTrainer
 
 def load_network(model_name, num_classes, ckpt_path=None, train=False, cfg=None):
     network = None
+
     print("Checkpoint file:", ckpt_path)
     print("Load model:", model_name, end="", flush=True)
     if model_name == "DeepLabV3+_WideResNet38":
@@ -32,7 +33,7 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False, cfg=None)
     elif model_name == "DualGCNNet_res50":
         network = DualSeg_res50(num_classes)
     elif model_name == "Detectron_DeepLab" or model_name == "Detectron_Panoptic_DeepLab":
-
+        cfg = get_cfg()
         if model_name == "Detectron_DeepLab":
             add_deeplab_config(cfg)
             cfg.merge_from_file(config.Detectron_DeepLab_Config)

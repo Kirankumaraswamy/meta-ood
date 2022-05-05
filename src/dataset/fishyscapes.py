@@ -62,7 +62,7 @@ class Fishyscapes(Dataset):
         target = Image.open(self.targets[i]).convert('L')
         if self.transform is not None:
             image, target = self.transform(image, target)
-            T = Resize(size=(512, 1024))
+            T = Resize(size=(480, 480))
             image = T(image)
             target = T(torch.unsqueeze(target, dim=0))
             target = torch.squeeze(target)

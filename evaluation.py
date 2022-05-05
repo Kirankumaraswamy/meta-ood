@@ -16,6 +16,7 @@ from src.helper import concatenate_metrics
 from meta_classification import meta_classification
 
 
+
 class eval_pixels(object):
     """
     Evaluate in vs. out separability on pixel-level
@@ -85,6 +86,14 @@ class eval_pixels(object):
         data = pickle.load(open(load_path, "rb"))
         fpr, tpr, _, auroc = calc_sensitivity_specificity(data, balance=True)
         fpr95 = fpr[(np.abs(tpr - 0.95)).argmin()]
+
+        # accurate fpr95
+        end = np.where(tpr > 0.95)[0]
+        start = end - 1
+        rate = (tpr[end]-tpr[start])/(fpr[end] - fpr[start])
+        fpr95_new = ((rate * fpr[end]) - (tpr[end] - 0.95))/rate
+        best_threshold = _[end]
+
         _, _, _, auprc = calc_precision_recall(data)
         if self.epoch == 0:
             print("\nOoDD Metrics - Epoch %d - Baseline" % self.epoch)
@@ -93,6 +102,9 @@ class eval_pixels(object):
         print("AUROC:", auroc)
         print("FPR95:", fpr95)
         print("AUPRC:", auprc)
+
+        print("FPR95_updated", fpr95_new)
+        print("Threshold value: ", best_threshold)
         return auroc, fpr95, auprc
 
 
@@ -145,7 +157,7 @@ def main(args):
         args["pixel_eval"] = args["segment_eval"] = True
 
     transform = Compose([ToTensor(), Normalize(config.dataset.mean, config.dataset.std)])
-    datloader = config.dataset(root=config.roots.eval_dataset_root, transform=transform)
+    datloader = config.dataset(root=config.roots.eval_dataset_root, model=config.roots.model_name, transform=transform)
     start = time.time()
 
     """Perform evaluation"""
