@@ -73,21 +73,23 @@ def main():
                 }
                 segment_info.append(info)
 
-            gt_save_name = "{:012d}_panoptic.png".format(img_Id)
-            semantic_save_name = "{:012d}_semantic.png".format(img_Id)
-            gt_save_path = os.path.join(save_dir, gt_save_name)
-            semantic_save_path = os.path.join(save_dir, semantic_save_name)
-            rgb_image_path = os.path.join(images_dir, "{:012d}.jpg".format(img_Id))
-            data = {"pan_seg_file_name":  gt_save_path,
-                    "sem_seg_file_name":  semantic_save_path,
-                    "segments_info": segment_info,
-                    "file_name": rgb_image_path}
-            json_data[gt_save_name] = data
+            if panoptic_mask.size == mask.size:
 
-            # Save segmentation mask
-            Image.fromarray(panoptic_mask).save(gt_save_path)
-            Image.fromarray(semantic_mask).save(semantic_save_path)
-            num_masks += 1
+                gt_save_name = "{:012d}_panoptic.png".format(img_Id)
+                semantic_save_name = "{:012d}_semantic.png".format(img_Id)
+                gt_save_path = os.path.join(save_dir, gt_save_name)
+                semantic_save_path = os.path.join(save_dir, semantic_save_name)
+                rgb_image_path = os.path.join(images_dir, "{:012d}.jpg".format(img_Id))
+                data = {"pan_seg_file_name":  gt_save_path,
+                        "sem_seg_file_name":  semantic_save_path,
+                        "segments_info": segment_info,
+                        "file_name": rgb_image_path}
+                json_data[gt_save_name] = data
+
+                # Save segmentation mask
+                Image.fromarray(panoptic_mask).save(gt_save_path)
+                Image.fromarray(semantic_mask).save(semantic_save_path)
+                num_masks += 1
 
         print("\rImages Processed: {}/{}".format(i + 1, len(img_Ids)), end=' ')
         sys.stdout.flush()
