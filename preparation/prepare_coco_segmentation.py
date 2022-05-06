@@ -75,7 +75,7 @@ def main():
                 }
                 segment_info.append(info)
 
-            if panoptic_mask.size == mask.size:
+            if panoptic_mask.shape[0] == h and panoptic_mask.shape[1] == w and semantic_mask.shape[0] == h and semantic_mask.shape[1] == w:
 
                 gt_save_name = "{:012d}_panoptic.png".format(img_Id)
                 semantic_save_name = "{:012d}_semantic.png".format(img_Id)
@@ -92,6 +92,8 @@ def main():
                 Image.fromarray(panoptic_mask).save(gt_save_path)
                 Image.fromarray(semantic_mask).save(semantic_save_path)
                 num_masks += 1
+            else:
+                ("print size didn't match", img["file_name"], h, w, panoptic_mask.shape[0] , panoptic_mask.shape[1], semantic_mask.shape[0] ,semantic_mask.shape[1])
 
         print("\rImages Processed: {}/{}".format(i + 1, len(img_Ids)), end=' ')
         sys.stdout.flush()
