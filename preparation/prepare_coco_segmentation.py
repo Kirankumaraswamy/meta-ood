@@ -47,6 +47,8 @@ def main():
     for i, img_Id in enumerate(img_Ids):
         img = tools.loadImgs(img_Id)[0]
         h, w = img['height'], img['width']
+        image = Image.open(os.path.join(images_dir, img["file_name"])).convert('RGB')
+        h, w = image.size[1], image.size[0]
 
         # Select only images with height and width of at least min_size
         if h >= min_size and w >= min_size:
