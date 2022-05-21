@@ -32,6 +32,17 @@ def cross_entropy(logits, targets):
     L = L.mean()
     return L
 
+def deep_lab_loss(logits, targets, criterion):
+    #pixel_losses = criterion(logits, targets).contiguous().view(-1)
+
+    neg_log_like = - 1.0 * F.log_softmax(logits, 1)
+    L = torch.mul(targets.float(), neg_log_like).sum(dim=1).contiguous().view(-1)
+    #L = L.mean()
+
+    top_k_pixels = int(0.2 * L.numel())
+    pixel_losses, _ = torch.topk(L, top_k_pixels)
+    return pixel_losses.mean()
+
 
 def encode_target(target, pareto_alpha, num_classes, ignore_train_ind, ood_ind=254):
     """
@@ -49,7 +60,7 @@ def encode_target(target, pareto_alpha, num_classes, ignore_train_ind, ood_ind=2
     npy[np.isin(npy, ignore_train_ind)] = num_classes + 1
     enc = np.eye(num_classes + 2)[npy][..., :-2]  # one hot encoding with last 2 axis cutoff
     enc[(npy == num_classes)] = np.full(num_classes, pareto_alpha / num_classes)  # set all hot encoded vector
-    enc[(enc == 1)] = 1 - pareto_alpha  # convex combination between in and out distribution samples
+    #enc[(enc == 1)] = 1 - pareto_alpha  # convex combination between in and out distribution samples
     enc[np.isin(npz, ignore_train_ind)] = np.zeros(num_classes)
     enc = torch.from_numpy(enc)
     enc = enc.permute(0, 3, 1, 2).contiguous()
@@ -98,6 +109,8 @@ def training_routine(config):
     transform = Compose([RandomHorizontalFlip(), RandomCrop(params.crop_size), ToTensor(),
                          Normalize(dataset.mean, dataset.std)])
 
+    cr_loss = torch.nn.CrossEntropyLoss(ignore_index=255, reduction="none")
+
     for epoch in range(start_epoch, start_epoch + epochs):
         """Perform one epoch of training"""
         print('\nEpoch {}/{}'.format(epoch + 1, start_epoch + epochs))
@@ -114,11 +127,13 @@ def training_routine(config):
             logits = logits["sem_seg_results"]
 
             '''import matplotlib.pyplot as plt
-            #plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
-            plt.imshow(x[0].permute(1, 2, 0).numpy())
+            plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+            #plt.imshow(x[0].permute(1, 2, 0).numpy())
             plt.show()
             out = torch.squeeze(logits[0]).detach().cpu().numpy().argmax(axis=0)
             plt.imshow(out)
+            plt.show()
+            plt.imshow(x[0]["sem_seg"])
             plt.show()
             plt.imshow(torch.squeeze(target[0]).numpy())
             plt.show()'''
@@ -130,8 +145,10 @@ def training_routine(config):
 
             ''' plt.imshow(np.max(torch.squeeze(y[0]).cpu().numpy(), axis=0))
             plt.show()'''
+            #l1 = cr_loss(logits, x[0]["sem_seg"].unsqueeze(dim=0).cuda())
+            loss = deep_lab_loss(logits, y, cr_loss)
+            #loss = cross_entropy(logits, y)
 
-            loss = cross_entropy(logits, y)
             loss.backward()
             optimizer.step()
             print('{} Loss: {}'.format(i, loss.item()))
