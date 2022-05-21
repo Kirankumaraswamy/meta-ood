@@ -11,7 +11,7 @@ import numpy as np
 
 class COCO(Dataset):
 
-    train_id_in = 0
+    train_id_in = 255
     train_id_out = 254
     min_image_size = 480
 
@@ -135,4 +135,3 @@ class COCO(Dataset):
                 offset[1][mask_index] = center_x - x_coord[mask_index]
 
 
-        a= 2

@@ -86,13 +86,13 @@ class eval_pixels(object):
         data = pickle.load(open(load_path, "rb"))
         fpr, tpr, _, auroc = calc_sensitivity_specificity(data, balance=True)
         fpr95 = fpr[(np.abs(tpr - 0.95)).argmin()]
+        threshold = _[(np.abs(tpr - 0.95)).argmin()]
 
         # accurate fpr95
-        end = np.where(tpr > 0.95)[0]
+        end = np.where(tpr > 0.95)[0][0]
         start = end - 1
         rate = (tpr[end]-tpr[start])/(fpr[end] - fpr[start])
         fpr95_new = ((rate * fpr[end]) - (tpr[end] - 0.95))/rate
-        best_threshold = _[end]
 
         _, _, _, auprc = calc_precision_recall(data)
         if self.epoch == 0:
@@ -104,7 +104,7 @@ class eval_pixels(object):
         print("AUPRC:", auprc)
 
         print("FPR95_updated", fpr95_new)
-        print("Threshold value: ", best_threshold)
+        print("Threshold: ", threshold)
         return auroc, fpr95, auprc
 
 

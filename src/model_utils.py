@@ -52,6 +52,7 @@ def load_network(model_name, num_classes, ckpt_path=None, train=False, cfg=None)
             )
         else:
             network.load_state_dict(torch.load(ckpt_path)['state_dict'], strict=False)
+            #network.load_state_dict(torch.load(ckpt_path)['model'], strict=False)
     network = network.cuda()
     if train:
         print("... ok")
@@ -71,17 +72,19 @@ def prediction(net, image):
     with torch.no_grad():
         out = net(image)
     if isinstance(out, tuple):
-        out = out[0]
+        sem_out = out[0]
     elif isinstance(out, list):
         if "sem_seg" in out[0].keys():
             sem_out = out[0]['sem_seg']
         if len(out) >= 2 and "panoptic_seg" in out[1].keys():
             panoptic_out = out[1]['panoptic_seg'][0]
             panoptic_out = panoptic_out.data.cpu()
-            panoptic_out = panoptic_out.numpy()
+            panoptic_out = np.squeeze(panoptic_out.numpy())
             center_heat_map = out[1]['center_heat_map']
             center_heat_map = center_heat_map.data.cpu()
-            center_heat_map = center_heat_map.numpy()
+            center_heat_map = np.squeeze(center_heat_map.numpy())
+    else:
+        sem_out = np.squeeze(out)
     sem_out = sem_out.data.cpu()
     sem_out = F.softmax(sem_out, 0)
     return sem_out.numpy(), panoptic_out, center_heat_map
@@ -159,24 +162,19 @@ class inference(object):
 
     def prob_gt_calc(self, i):
         x, y = self.loader[i]
+        if not isinstance(x, list):
+            x = x.unsqueeze_(0)
         sem_seg, panoptic_seg, center_heat_map = prediction(self.net, x)
-        probs = np.squeeze(sem_seg)
-        panoptic_probs = np.squeeze(panoptic_seg)
-        center_heat_map = np.squeeze(center_heat_map)
-
+        probs = sem_seg
+        gt_train = y.numpy()
         '''import matplotlib.pyplot as plt
         plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+        #plt.imshow(x.squeeze().permute(1, 2, 0).numpy())
         plt.show()
         out = probs.argmax(axis=0)
         plt.imshow(out)
-        plt.show()
-        plt.imshow(np.expand_dims(panoptic_probs, axis=2))
-        plt.show()
-        plt.imshow(np.expand_dims(center_heat_map, axis=2))
         plt.show()'''
 
-
-        gt_train = y.numpy()
         try:
             gt_label = np.array(Image.open(self.loader.annotations[i]).convert('L'))
         except AttributeError:

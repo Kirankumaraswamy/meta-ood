@@ -62,10 +62,10 @@ class Fishyscapes(Dataset):
         target = Image.open(self.targets[i]).convert('L')
         if self.transform is not None:
             image, target = self.transform(image, target)
-            T = Resize(size=(480, 480))
+            '''T = Resize(size=(480, 480))
             image = T(image)
             target = T(torch.unsqueeze(target, dim=0))
-            target = torch.squeeze(target)
+            target = torch.squeeze(target)'''
         if self.model == "Detectron_DeepLab" or self.model == "Detectron_Panoptic_DeepLab":
             return [{"image": image, "height": image.size()[1], "width": image.size()[2]}], target
         else:

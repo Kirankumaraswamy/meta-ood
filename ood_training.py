@@ -102,27 +102,33 @@ def training_routine(config):
         """Perform one epoch of training"""
         print('\nEpoch {}/{}'.format(epoch + 1, start_epoch + epochs))
         optimizer = optim.Adam(network.parameters(), lr=params.learning_rate)
-        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor, cfg=dataset_cfg)
+        trainloader = config.dataset('train', transform, roots.cs_root, roots.coco_root, params.ood_subsampling_factor, cs_split="train", coco_split="val", cfg=dataset_cfg, model="detectron")
         dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True, collate_fn=panoptic_deep_lab_collate)
+        #dataloader = DataLoader(trainloader, batch_size=params.batch_size, shuffle=True)
         i = 0
         loss = None
         for x, target in dataloader:
             optimizer.zero_grad()
             logits, losses = network(x)
+            #logits = network(x.cuda())
+            logits = logits["sem_seg_results"]
+
+            '''import matplotlib.pyplot as plt
+            #plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
+            plt.imshow(x[0].permute(1, 2, 0).numpy())
+            plt.show()
+            out = torch.squeeze(logits[0]).detach().cpu().numpy().argmax(axis=0)
+            plt.imshow(out)
+            plt.show()
+            plt.imshow(torch.squeeze(target[0]).numpy())
+            plt.show()'''
 
             y = encode_target(target=target, pareto_alpha=params.pareto_alpha, num_classes=dataset.num_classes,
                               ignore_train_ind=dataset.void_ind, ood_ind=dataset.train_id_out).cuda()
 
-            logits = logits["sem_seg_results"]
-            '''import matplotlib.pyplot as plt
-            plt.imshow(x[0]["image"].permute(1, 2, 0).numpy())
-            plt.show()
-            out = torch.squeeze(logits).detach().cpu().numpy().argmax(axis=0)
-            plt.imshow(out)
-            plt.show()
-            plt.imshow(torch.squeeze(target).numpy())
-            plt.show()
-            plt.imshow(np.max(torch.squeeze(y).cpu().numpy(), axis=0))
+
+
+            ''' plt.imshow(np.max(torch.squeeze(y[0]).cpu().numpy(), axis=0))
             plt.show()'''
 
             loss = cross_entropy(logits, y)

@@ -14,7 +14,7 @@ class CityscapesCocoMix(Dataset):
     def __init__(self, split='train', transform=None,
                  cs_root="/home/datasets/cityscapes",
                  coco_root="/home/datasets/COCO/2017",
-                 subsampling_factor=0.1, cs_split=None, coco_split=None, cfg=None):
+                 subsampling_factor=0.1, cs_split=None, coco_split=None, cfg=None, model=None):
 
         self.transform = transform
         if cs_split is None or coco_split is None:
@@ -27,12 +27,14 @@ class CityscapesCocoMix(Dataset):
         self.cs = Cityscapes(root=cs_root, split=self.cs_split)
         self.coco = COCO(root=coco_root, split=self.coco_split, proxy_size=int(subsampling_factor*len(self.cs)))
         self.data_dicts = self.cs.cityscapes_data_dicts + self.coco.coco_data_dicts
+        #self.data_dicts = self.cs.cityscapes_data_dicts
         self.train_id_out = self.coco.train_id_out
         self.num_classes = self.cs.num_train_ids
         self.mean = self.cs.mean
         self.std = self.cs.std
         self.void_ind = self.cs.ignore_in_eval_ids
         self.cfg = cfg
+        self.model = model
 
 
         if self.cfg != None:
@@ -57,7 +59,7 @@ class CityscapesCocoMix(Dataset):
         data = self.data_dicts[i]
         image = Image.open(data["file_name"]).convert('RGB')
         target = []
-        if self.cfg != None:
+        if self.cfg != None and self.model is not None:
             if data["dataset"] == "cityscapes":
                 pan_seg_gt= Image.open(data["pan_seg_file_name"]).convert("RGB")
             else:
@@ -73,17 +75,20 @@ class CityscapesCocoMix(Dataset):
             target = targets["sem_seg"]
             # we don't use default loss calculation from detectron. To avoid error because of OOD value (254)
             data["sem_seg"] = torch.zeros_like(data["sem_seg"])
-        else:
+            data["image"] = image
+        elif self.model is not None:
             sem_seg_gt = Image.open(data["sem_seg_file_name"]).convert('L')
             if self.transform is not None:
                 image, sem_seg_gt = self.transform(image, sem_seg_gt)
             data["sem_seg"] = sem_seg_gt
             target = sem_seg_gt
-            # we don't use default loss calculation from detectron. To avoid error because of OOD valye (254)
+            # we don't use default loss calculation from detectron. To avoid error because of OOD value (254)
             data["sem_seg"] = torch.zeros_like(data["sem_seg"])
-
-        data["image"] = image
-
+            data["image"] = image
+        else:
+            target = Image.open(data["sem_seg_file_name"]).convert('L')
+            if self.transform is not None:
+                data, target = self.transform(image, target)
         return data, target
 
     def __len__(self):
